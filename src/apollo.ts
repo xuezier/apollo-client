@@ -441,7 +441,12 @@ export default class Apollo {
             // 只有 agent-worker 才能写入 env 文件
             // 避免多个 app-worker 写入的时候文件已被移除，造成错误
             const rename = `${envPath}.${Date.now()}`;
-            fs.renameSync(envPath, rename);
+            try {
+                fs.renameSync(envPath, rename);
+            }
+            catch (e) {
+                console.error(e);
+            }
         }
         fs.writeFileSync(envPath, fileData, 'utf-8');
     }
