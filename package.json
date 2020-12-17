@@ -1,6 +1,6 @@
 {
     "name": "@gaoding/apollo-client",
-    "version": "1.2.10",
+    "version": "1.2.11",
     "description": "apollo nodejs client",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
