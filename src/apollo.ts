@@ -445,7 +445,7 @@ export default class Apollo {
                 fs.renameSync(envPath, rename);
             }
             catch (e) {
-                console.error(e);
+                process.env.NODE_ENV !== 'production' && console.error(e);
             }
         }
         fs.writeFileSync(envPath, fileData, 'utf-8');
