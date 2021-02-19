@@ -1,5 +1,5 @@
 import yargs from 'yargs';
-import request from '../request';
+import request from '../../request';
 
 const argv = yargs(process.argv).options('options', {
     alias: 'o',

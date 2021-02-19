@@ -43,7 +43,6 @@ export default function request(options: CurlOptions): CurlResponse {
     }
 
     const url = options.url;
-    delete options.url;
     const result = spawnSync('node', ['./child.js', url, '-o', JSON.stringify(options)], {
         cwd: __dirname
     });
