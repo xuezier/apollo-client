@@ -101,7 +101,7 @@ export default function request(uri: string, options = {
     };
 
     let request: http.ClientRequest;
-    let promise: Promise<http.ClientResponse & { data?: any; isJSON(): boolean; }>;
+    let promise: Promise<http.IncomingMessage & { data?: any; isJSON(): boolean; }>;
 
     switch (options.method) {
         case RequestMethod.GET:
