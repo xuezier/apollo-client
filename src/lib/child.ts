@@ -10,7 +10,6 @@ const optionsString = argv.o;
 const anonymousArgs = argv._;
 
 (async function () {
-
     const url = anonymousArgs[0];
     if (!url) return console.log('');
 

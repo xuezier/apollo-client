@@ -1,6 +1,8 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as assert from 'assert';
+import { tmpdir } from 'os';
+import { EventEmitter } from 'events';
 
 import request, { RequestError } from './request';
 
@@ -8,71 +10,15 @@ import curl, { CurlMethods, CurlResponse } from './lib/curl';
 import Configs from './configs';
 import { EnvReader } from './env-reader';
 import { Logger } from './lib/logger';
-import { tmpdir } from 'os';
+import { IApolloConfig } from './interface/IApolloConfig';
+import { IApolloRequestConfig } from './interface/IApolloRequestConfig';
+import { ApolloConfigError } from './error/ApolloConfigError';
+import { ApolloInitConfigError } from './error/ApolloInitConfigError';
+import { IApolloReponseConfigData } from './interface/IApolloReponseConfigData';
+import { IApolloLongPollingResponseData } from './interface/IApolloLongPollingResponseData';
+import { ApolloEvent } from './type/Event';
 
-export interface IApolloConfig {
-    config_server_url: string;
-    app_id: string;
-    token?: string;
-    cluster_name?: string;
-    namespace_name?: string;
-    release_key?: string;
-    ip?: string;
-    watch?: boolean;
-    set_env_file?: boolean;
-    env_file_path?: string;
-    env_file_type?: string;
-    init_on_start?: boolean;
-    timeout?: number;
-}
-
-export interface IApolloRequestConfig {
-    cluster_name?: string;
-    namespace_name?: string;
-    release_key?: string;
-    ip?: string;
-    notifications?: {
-        namespaceName: string;
-        notificationId: number;
-    }[]
-}
-
-export class ApolloConfigError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `ApolloConfigError: ${message}`;
-    }
-}
-
-export class ApolloInitConfigError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `ApolloInitConfigError: ${message}`;
-    }
-}
-
-export interface ApolloReponseConfigData {
-    // '{"appId":"ums-local","cluster":"default","namespaceName":"application","configurations":{"NODE_ENV":"production"}
-    appId: string;
-    cluster: string;
-    namespaceName: string;
-    configurations: {
-        [x: string]: string;
-    };
-    releaseKey: string;
-}
-
-export interface ApolloLongPollingResponseData {
-    namespaceName: string;
-    notificationId: number;
-    messages: {
-        details: {
-            [x: string]: number;
-        }
-    };
-}
-
-export default class Apollo {
+export default class Apollo extends EventEmitter {
     logger: any;
 
     private _config_server_url = '';
@@ -98,6 +44,8 @@ export default class Apollo {
 
 
     constructor(config: IApolloConfig, logger: any = new Logger()) {
+        super();
+
         this.logger = logger;
 
         assert(config.config_server_url, 'config option config_server_url is required');
@@ -181,6 +129,15 @@ export default class Apollo {
 
     get envReader() {
         return this._envReader;
+    }
+
+    on(event: ApolloEvent, listener: (config: IApolloReponseConfigData) => void) {
+        super.on(event, listener);
+        return this;
+    }
+
+    emit(event: ApolloEvent, ...args: any[]) {
+        return super.emit(event, ...args);
     }
 
     /**
@@ -278,6 +235,7 @@ export default class Apollo {
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
+                this.emit('config.updated', response.data);
             }
             return response.data;
         }
@@ -310,7 +268,7 @@ export default class Apollo {
 
         while (true) {
             try {
-                const data: ApolloLongPollingResponseData[] | undefined = await this.remoteConfigFromServiceLongPolling(config);
+                const data: IApolloLongPollingResponseData[] | undefined = await this.remoteConfigFromServiceLongPolling(config);
                 if (data) {
                     for (const item of data) {
                         const { notificationId, namespaceName } = item;
@@ -398,7 +356,7 @@ export default class Apollo {
         return this.configs.getDate(key);
     }
 
-    private setEnv(data: ApolloReponseConfigData) {
+    private setEnv(data: IApolloReponseConfigData) {
         let { configurations, releaseKey, namespaceName } = data;
         if (namespaceName.endsWith('.json')) {
             configurations = JSON.parse(configurations.content);
@@ -423,7 +381,7 @@ export default class Apollo {
         this.configs.configs[namespaceName] = config;
     }
 
-    protected saveEnvFile(data: ApolloReponseConfigData) {
+    protected saveEnvFile(data: IApolloReponseConfigData) {
         const { configurations, namespaceName, releaseKey } = data;
 
         this.apollo_env.release_key = releaseKey;
