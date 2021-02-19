@@ -6,7 +6,7 @@ import { EventEmitter } from 'events';
 
 import request, { RequestError } from './request';
 
-import curl, { CurlMethods, CurlResponse } from './lib/curl';
+import curl, { CurlMethods, ICurlResponse } from './lib/curl';
 import Configs from './configs';
 import { EnvReader } from './env-reader';
 import { Logger } from './lib/logger';
@@ -168,7 +168,7 @@ export default class Apollo extends EventEmitter {
             ip: this.ip,
         };
 
-        let response: CurlResponse | undefined;
+        let response: ICurlResponse | undefined;
         let error;
         try {
             response = curl({
