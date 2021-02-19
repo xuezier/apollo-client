@@ -11,21 +11,7 @@
     ******************************************************************
     ******************************************************************
 
-携程 Apollo 配置中心 egg 客户端版本
-
-## FIRST
-使用时，需要确定有 curl 命令
-```bash
-# centos 7
-yum install curl
-
-# ubuntu
-apt-get install curl
-
-# docker node:alpine
-apk add --no-cache --virtual native-deps \
-    curl
-```
+携程 Apollo 配置中心 node.js 客户端版本
 
 ## Installation
 ```bash
