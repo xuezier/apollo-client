@@ -1,6 +1,7 @@
 export interface IApolloConfig {
     config_server_url: string;
     app_id: string;
+    secret?: string;
     token?: string;
     cluster_name?: string;
     namespace_name?: string;

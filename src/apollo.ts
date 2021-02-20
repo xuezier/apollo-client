@@ -1,10 +1,11 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as assert from 'assert';
+import * as crypto from 'crypto';
 import { tmpdir } from 'os';
 import { EventEmitter } from 'events';
 
-import request, { RequestError } from './request';
+import request, { RequestError } from './lib/request';
 
 import curl, { CurlMethods, ICurlResponse } from './lib/curl';
 import Configs from './configs';
@@ -17,12 +18,14 @@ import { ApolloInitConfigError } from './error/ApolloInitConfigError';
 import { IApolloReponseConfigData } from './interface/IApolloReponseConfigData';
 import { IApolloLongPollingResponseData } from './interface/IApolloLongPollingResponseData';
 import { ApolloEvent } from './type/Event';
+import { OpenApi } from './OpenApi';
 
 export default class Apollo extends EventEmitter {
     logger: any;
 
     private _config_server_url = '';
     private _app_id = '';
+    private _secret = '';
     private _cluster_name = 'default';
     private _namespace_name = 'application';
     private _release_key = '';
@@ -40,8 +43,9 @@ export default class Apollo extends EventEmitter {
 
     private _apollo_env: { [x: string]: string } = {};
     private _configs = new Configs();
-    private _notifications: {[x: string]: number} = {};
+    private _notifications: { [x: string]: number } = {};
 
+    private _openApi: OpenApi;
 
     constructor(config: IApolloConfig, logger: any = new Logger()) {
         super();
@@ -61,6 +65,24 @@ export default class Apollo extends EventEmitter {
             env_file_type: this.env_file_type,
             logger: this.logger
         });
+
+        if (config.token) {
+            this._openApi = new OpenApi({
+                token: config.token,
+                portal_address: config.config_server_url,
+                app_id: config.app_id,
+                cluster_name: config.cluster_name,
+                namespace_name: config.namespace_name,
+            }, this.logger);
+        }
+    }
+
+    get openApi() {
+        if (!this._openApi) {
+            throw new ApolloConfigError(`missing config key: \`secret\`, cannot create openApi instance`);
+        }
+
+        return this._openApi;
     }
 
     get config_server_url() {
@@ -69,6 +91,10 @@ export default class Apollo extends EventEmitter {
 
     get app_id() {
         return this._app_id;
+    }
+
+    get secret() {
+        return this._secret;
     }
 
     get cluster_name() {
@@ -140,6 +166,13 @@ export default class Apollo extends EventEmitter {
         return super.emit(event, ...args);
     }
 
+    private signature(timestamp: string, pathWithQuery: string) {
+        const stringToSign = `${timestamp}\n${pathWithQuery}`;
+
+        const sign = crypto.createHmac('sha1', this.secret).update(stringToSign).digest('hex');
+        return sign;
+    }
+
     /**
      * get namespace configs
      * @param namespace
@@ -171,12 +204,20 @@ export default class Apollo extends EventEmitter {
         let response: ICurlResponse | undefined;
         let error;
         try {
-            response = curl({
+            const options = {
                 url,
                 method: CurlMethods.GET,
                 body: JSON.stringify(data),
-                headers: [ 'Content-Type: application/json' ],
-            });
+                headers: ['Content-Type: application/json'],
+            };
+            if (this.secret) {
+                const timestamp = Date.now().toString();
+                const sign = this.signature(timestamp, url);
+
+                options.headers.push(`Authorization: ${sign}`, `Timestamp: ${timestamp}`);
+            }
+
+            response = curl(options);
         } catch (err) {
             error = err;
         } finally {
@@ -226,12 +267,26 @@ export default class Apollo extends EventEmitter {
         const { cluster_name = this.cluster_name, namespace_name = this.namespace_name, release_key = this.release_key, ip = this.ip } = config;
 
         const url = `${this.config_server_url}/configfiles/json/${this.app_id}/${cluster_name}/${namespace_name}`;
-        const data = {
-            releaseKey: release_key,
-            ip,
+
+        const options = {
+            data: {
+                releaseKey: release_key,
+                ip,
+            },
+            headers: {}
         };
 
-        const response = await request(url, { data });
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
@@ -245,12 +300,25 @@ export default class Apollo extends EventEmitter {
         const { cluster_name = this.cluster_name, namespace_name = this.namespace_name, release_key = this.release_key, ip = this.ip } = config;
 
         const url = `${this.config_server_url}/configs/${this.app_id}/${cluster_name}/${namespace_name}`;
-        const data = {
-            releaseKey: release_key,
-            ip,
+        const options = {
+            data: {
+                releaseKey: release_key,
+                ip,
+            },
+            headers: {},
         };
 
-        const response = await request(url, { data });
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
@@ -319,9 +387,22 @@ export default class Apollo extends EventEmitter {
 
         const url = `${this.config_server_url}/notifications/v2?appId=${this.app_id}&cluster=${cluster_name}&notifications=${encodeURI(JSON.stringify(notifications))}`;
 
-        const response = await request(url, {
+        const options = {
             timeout: this.timeout,
-        });
+            headers: {},
+        };
+
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
 
         if (response.statusCode !== 304 && !response.isJSON()) {
             throw new RequestError(response.data);
