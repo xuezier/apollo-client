@@ -1,3 +1,5 @@
+import * as assert from 'assert';
+
 import { IOpenApiConfig } from "./interface/IOpenApiConfig";
 import { Logger } from "./lib/logger";
 import request, { RequestError } from "./lib/request";
@@ -36,6 +38,9 @@ export class OpenApi{
     logger: Logger;
 
     constructor(options: IOpenApiConfig, logger: any = new Logger()) {
+        assert(options.token, 'config options key `token` is required');
+        assert(options.portal_address, 'config options key: `portal_address` is required');
+
         this._portal_address = options.portal_address;
         this._token = options.token;
         this._appId = options.app_id;
