@@ -82,6 +82,9 @@ export class OpenApi{
         return response.data;
     }
 
+    /**
+     * @description 获取App的环境，集群信息
+     */
     async getEnvclustersWithAppid(appId?: string): Promise<{
         env: string;
         clusters: string[];
@@ -91,6 +94,9 @@ export class OpenApi{
         return result;
     }
 
+    /**
+     * @description 获取集群
+     */
     async getClusterInfo(params: {
         appId?: string,
         env: string;
@@ -102,6 +108,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}`);
     }
 
+    /**
+     * @description 创建集群
+     */
     async createCluster(params: {
         env: string;
         appId?: string;
@@ -121,6 +130,9 @@ export class OpenApi{
         })
     }
 
+    /**
+     * @description 获取集群下所有Namespace信息
+     */
     async getNamespaces(params: {
         env: string;
         appId?: string;
@@ -132,6 +144,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces`);
     }
 
+    /**
+     * @description 获取某个Namespace信息
+     */
     async getNamespaceInfo(params: {
         env: string;
         appId?: string;
@@ -144,6 +159,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}`);
     }
 
+    /**
+     * @description 创建Namespace
+     */
     async createNamespace(params: {
         appId?: string;
         name: string;
@@ -161,6 +179,9 @@ export class OpenApi{
         });
     }
 
+    /**
+     * @description 获取某个Namespace当前编辑人
+     */
     async getNamespcaeLockInfo(params: {
         env: string;
         appId?: string;
@@ -173,6 +194,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/lock`);
     }
 
+    /**
+     * @description 读取配置
+     */
     async getConfigByKey(params: {
         env: string;
         appId?: string;
@@ -186,6 +210,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${key}`);
     }
 
+    /**
+     * @description 新增配置
+     */
     async addConfig(params: {
         env: string;
         appId?: string;
@@ -210,6 +237,9 @@ export class OpenApi{
         })
     }
 
+    /**
+     * @description 修改配置
+     */
     async modifyConfig(params: {
         createIfNotExists?: boolean;
         env: string;
@@ -238,6 +268,9 @@ export class OpenApi{
         })
     }
 
+    /**
+     * @description 删除配置
+     */
     async deleteConfigByKey(params: {
         env: string;
         appId?: string;
@@ -254,6 +287,9 @@ export class OpenApi{
         });
     }
 
+    /**
+     * @description 发布配置
+     */
     async releaseConfigs(params: {
         env: string;
         appId?: string;
@@ -276,6 +312,9 @@ export class OpenApi{
         });
     }
 
+    /**
+     * @description 获取某个Namespace当前生效的已发布配置
+     */
     async getLatestRelease(params: {
         env: string;
         appId?: string;
@@ -288,6 +327,9 @@ export class OpenApi{
         return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/releases/latest`);
     }
 
+    /**
+     * @description 回滚已发布配置
+     */
     async rollbackRelease(params: {
         env: string;
         releaseId: string | number;
@@ -301,6 +343,9 @@ export class OpenApi{
         })
     }
 
+    /**
+     * @description 获取App信息
+     */
     async getApps(): Promise<{
         name: string;
         appId: string;
