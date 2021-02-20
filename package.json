@@ -15,7 +15,8 @@
             "email": "tunan@gaoding.com"
         }
     ],
-    "license": "ISC",
+    "homepage": "https://github.com/xuezier/apollo-client",
+    "license": "MIT",
     "devDependencies": {
         "@types/node": "^12.20.3",
         "@types/yargs": "^16.0.0",

@@ -104,7 +104,7 @@ const apollo = new Apollo({
     portal_address: 'https://apollo.xxxx.com',  // portal url
 });
 
-const openApi = apolle.openApi;
+const openApi = apollo.openApi;
 ```
 2. 独立初始化
 ```js
