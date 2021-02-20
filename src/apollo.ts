@@ -1,3 +1,4 @@
+import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as assert from 'assert';
@@ -35,6 +36,8 @@ export default class Apollo extends EventEmitter {
     private _init_on_start = true;
     private _env_file_path = '';
     private _env_file_type = 'properties';
+    private _token = '';
+    private _portal_address = '';
 
     private _envReader: EnvReader;
 
@@ -66,13 +69,13 @@ export default class Apollo extends EventEmitter {
             logger: this.logger
         });
 
-        if (config.token) {
+        if (config.token && config.portal_address) {
             this._openApi = new OpenApi({
-                token: config.token,
-                portal_address: config.config_server_url,
-                app_id: config.app_id,
-                cluster_name: config.cluster_name,
-                namespace_name: config.namespace_name,
+                token: this.token,
+                portal_address: this.portal_address,
+                app_id: this.app_id,
+                cluster_name: this.cluster_name,
+                namespace_name: this.namespace_name,
             }, this.logger);
         }
     }
@@ -83,6 +86,14 @@ export default class Apollo extends EventEmitter {
         }
 
         return this._openApi;
+    }
+
+    get token() {
+        return this._token;
+    }
+
+    get portal_address() {
+        return this._portal_address;
     }
 
     get config_server_url() {
@@ -208,15 +219,18 @@ export default class Apollo extends EventEmitter {
                 url,
                 method: CurlMethods.GET,
                 body: JSON.stringify(data),
-                headers: ['Content-Type: application/json'],
+                headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
             };
             if (this.secret) {
                 const timestamp = Date.now().toString();
                 const sign = this.signature(timestamp, url);
 
-                options.headers.push(`Authorization: ${sign}`, `Timestamp: ${timestamp}`);
+                options.headers = {
+                    ...options.headers,
+                    Authorization: sign,
+                    Timestamp: timestamp
+                }
             }
-
             response = curl(options);
         } catch (err) {
             error = err;

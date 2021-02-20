@@ -3,6 +3,7 @@ export interface IApolloConfig {
     app_id: string;
     secret?: string;
     token?: string;
+    portal_address?: string;
     cluster_name?: string;
     namespace_name?: string;
     release_key?: string;

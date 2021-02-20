@@ -9,7 +9,7 @@ import { Namespace, NamespaceCreateResponse, NamespaceLockResponse } from "./typ
 import { KeyConfig } from "./type/OpenApiKeyConfig";
 import { ReleaseInfo } from "./type/Release";
 
-export class OpenApi{
+export class OpenApi {
     private _portal_address: string;
     get portal_address() {
         return this._portal_address;
@@ -74,9 +74,25 @@ export class OpenApi{
             return null;
         }
 
+        if (response.statusCode !== 200) {
+            if (response.data) {
+                const error = new RequestError(response.data.message);
+                throw error;
+            }
+            else {
+                const error = new RequestError(response.statusMessage);
+                throw error;
+            }
+        }
+
+        if (!response.data) {
+            return;
+        }
+
         if (!response.isJSON()) {
             const error = new RequestError(response.data);
             this.logger.error(error);
+            return;
         }
 
         return response.data;
