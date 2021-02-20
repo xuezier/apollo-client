@@ -1,82 +1,32 @@
+import * as http from 'http';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as assert from 'assert';
+import * as crypto from 'crypto';
+import { tmpdir } from 'os';
+import { EventEmitter } from 'events';
 
-import request, { RequestError } from './request';
+import request, { RequestError } from './lib/request';
 
-import curl, { CurlMethods, CurlResponse } from './lib/curl';
+import curl, { CurlMethods, ICurlResponse } from './lib/curl';
 import Configs from './configs';
 import { EnvReader } from './env-reader';
 import { Logger } from './lib/logger';
-import { tmpdir } from 'os';
+import { IApolloConfig } from './interface/IApolloConfig';
+import { IApolloRequestConfig } from './interface/IApolloRequestConfig';
+import { ApolloConfigError } from './error/ApolloConfigError';
+import { ApolloInitConfigError } from './error/ApolloInitConfigError';
+import { IApolloReponseConfigData } from './interface/IApolloReponseConfigData';
+import { IApolloLongPollingResponseData } from './interface/IApolloLongPollingResponseData';
+import { ApolloEvent } from './type/Event';
+import { OpenApi } from './OpenApi';
 
-export interface IApolloConfig {
-    config_server_url: string;
-    app_id: string;
-    token?: string;
-    cluster_name?: string;
-    namespace_name?: string;
-    release_key?: string;
-    ip?: string;
-    watch?: boolean;
-    set_env_file?: boolean;
-    env_file_path?: string;
-    env_file_type?: string;
-    init_on_start?: boolean;
-    timeout?: number;
-}
-
-export interface IApolloRequestConfig {
-    cluster_name?: string;
-    namespace_name?: string;
-    release_key?: string;
-    ip?: string;
-    notifications?: {
-        namespaceName: string;
-        notificationId: number;
-    }[]
-}
-
-export class ApolloConfigError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `ApolloConfigError: ${message}`;
-    }
-}
-
-export class ApolloInitConfigError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `ApolloInitConfigError: ${message}`;
-    }
-}
-
-export interface ApolloReponseConfigData {
-    // '{"appId":"ums-local","cluster":"default","namespaceName":"application","configurations":{"NODE_ENV":"production"}
-    appId: string;
-    cluster: string;
-    namespaceName: string;
-    configurations: {
-        [x: string]: string;
-    };
-    releaseKey: string;
-}
-
-export interface ApolloLongPollingResponseData {
-    namespaceName: string;
-    notificationId: number;
-    messages: {
-        details: {
-            [x: string]: number;
-        }
-    };
-}
-
-export default class Apollo {
+export default class Apollo extends EventEmitter {
     logger: any;
 
     private _config_server_url = '';
     private _app_id = '';
+    private _secret = '';
     private _cluster_name = 'default';
     private _namespace_name = 'application';
     private _release_key = '';
@@ -86,6 +36,8 @@ export default class Apollo {
     private _init_on_start = true;
     private _env_file_path = '';
     private _env_file_type = 'properties';
+    private _token = '';
+    private _portal_address = '';
 
     private _envReader: EnvReader;
 
@@ -94,10 +46,13 @@ export default class Apollo {
 
     private _apollo_env: { [x: string]: string } = {};
     private _configs = new Configs();
-    private _notifications: {[x: string]: number} = {};
+    private _notifications: { [x: string]: number } = {};
 
+    private _openApi: OpenApi;
 
     constructor(config: IApolloConfig, logger: any = new Logger()) {
+        super();
+
         this.logger = logger;
 
         assert(config.config_server_url, 'config option config_server_url is required');
@@ -113,6 +68,32 @@ export default class Apollo {
             env_file_type: this.env_file_type,
             logger: this.logger
         });
+
+        if (config.token && config.portal_address) {
+            this._openApi = new OpenApi({
+                token: this.token,
+                portal_address: this.portal_address,
+                app_id: this.app_id,
+                cluster_name: this.cluster_name,
+                namespace_name: this.namespace_name,
+            }, this.logger);
+        }
+    }
+
+    get openApi() {
+        if (!this._openApi) {
+            throw new ApolloConfigError(`missing config key: \`secret\`, cannot create openApi instance`);
+        }
+
+        return this._openApi;
+    }
+
+    get token() {
+        return this._token;
+    }
+
+    get portal_address() {
+        return this._portal_address;
     }
 
     get config_server_url() {
@@ -121,6 +102,10 @@ export default class Apollo {
 
     get app_id() {
         return this._app_id;
+    }
+
+    get secret() {
+        return this._secret;
     }
 
     get cluster_name() {
@@ -183,6 +168,22 @@ export default class Apollo {
         return this._envReader;
     }
 
+    on(event: ApolloEvent, listener: (config: IApolloReponseConfigData) => void) {
+        super.on(event, listener);
+        return this;
+    }
+
+    emit(event: ApolloEvent, ...args: any[]) {
+        return super.emit(event, ...args);
+    }
+
+    private signature(timestamp: string, pathWithQuery: string) {
+        const stringToSign = `${timestamp}\n${pathWithQuery}`;
+
+        const sign = crypto.createHmac('sha1', this.secret).update(stringToSign).digest('hex');
+        return sign;
+    }
+
     /**
      * get namespace configs
      * @param namespace
@@ -211,15 +212,26 @@ export default class Apollo {
             ip: this.ip,
         };
 
-        let response: CurlResponse | undefined;
+        let response: ICurlResponse | undefined;
         let error;
         try {
-            response = curl({
+            const options = {
                 url,
                 method: CurlMethods.GET,
                 body: JSON.stringify(data),
-                headers: [ 'Content-Type: application/json' ],
-            });
+                headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
+            };
+            if (this.secret) {
+                const timestamp = Date.now().toString();
+                const sign = this.signature(timestamp, url);
+
+                options.headers = {
+                    ...options.headers,
+                    Authorization: sign,
+                    Timestamp: timestamp
+                }
+            }
+            response = curl(options);
         } catch (err) {
             error = err;
         } finally {
@@ -269,15 +281,30 @@ export default class Apollo {
         const { cluster_name = this.cluster_name, namespace_name = this.namespace_name, release_key = this.release_key, ip = this.ip } = config;
 
         const url = `${this.config_server_url}/configfiles/json/${this.app_id}/${cluster_name}/${namespace_name}`;
-        const data = {
-            releaseKey: release_key,
-            ip,
+
+        const options = {
+            data: {
+                releaseKey: release_key,
+                ip,
+            },
+            headers: {}
         };
 
-        const response = await request(url, { data });
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
+                this.emit('config.updated', response.data);
             }
             return response.data;
         }
@@ -287,12 +314,25 @@ export default class Apollo {
         const { cluster_name = this.cluster_name, namespace_name = this.namespace_name, release_key = this.release_key, ip = this.ip } = config;
 
         const url = `${this.config_server_url}/configs/${this.app_id}/${cluster_name}/${namespace_name}`;
-        const data = {
-            releaseKey: release_key,
-            ip,
+        const options = {
+            data: {
+                releaseKey: release_key,
+                ip,
+            },
+            headers: {},
         };
 
-        const response = await request(url, { data });
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
@@ -310,7 +350,7 @@ export default class Apollo {
 
         while (true) {
             try {
-                const data: ApolloLongPollingResponseData[] | undefined = await this.remoteConfigFromServiceLongPolling(config);
+                const data: IApolloLongPollingResponseData[] | undefined = await this.remoteConfigFromServiceLongPolling(config);
                 if (data) {
                     for (const item of data) {
                         const { notificationId, namespaceName } = item;
@@ -361,9 +401,22 @@ export default class Apollo {
 
         const url = `${this.config_server_url}/notifications/v2?appId=${this.app_id}&cluster=${cluster_name}&notifications=${encodeURI(JSON.stringify(notifications))}`;
 
-        const response = await request(url, {
+        const options = {
             timeout: this.timeout,
-        });
+            headers: {},
+        };
+
+        if (this.secret) {
+            const timestamp = Date.now().toString();
+            const sign = this.signature(timestamp, url);
+
+            options.headers = {
+                Authorization: sign,
+                Timestamp: timestamp,
+            }
+        }
+
+        const response = await request(url, options);
 
         if (response.statusCode !== 304 && !response.isJSON()) {
             throw new RequestError(response.data);
@@ -398,7 +451,7 @@ export default class Apollo {
         return this.configs.getDate(key);
     }
 
-    private setEnv(data: ApolloReponseConfigData) {
+    private setEnv(data: IApolloReponseConfigData) {
         let { configurations, releaseKey, namespaceName } = data;
         if (namespaceName.endsWith('.json')) {
             configurations = JSON.parse(configurations.content);
@@ -423,7 +476,7 @@ export default class Apollo {
         this.configs.configs[namespaceName] = config;
     }
 
-    protected saveEnvFile(data: ApolloReponseConfigData) {
+    protected saveEnvFile(data: IApolloReponseConfigData) {
         const { configurations, namespaceName, releaseKey } = data;
 
         this.apollo_env.release_key = releaseKey;

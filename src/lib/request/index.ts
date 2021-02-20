@@ -2,65 +2,11 @@ import * as http from 'http';
 import * as https from 'https';
 import * as url from 'url';
 import * as querystring from 'querystring';
+import { RequestMethod } from './enum/RequestMethod';
+import { IRequestOptions } from './interface/IRequestOptions';
+import { RequestMethodError, UnknowReuqestError, RequestError } from './error';
 
-export enum RequestMethod {
-    POST = 'POST',
-    GET = 'GET',
-    PUT = 'PUT',
-    DELETE = 'DELETE',
-    OPTIONS = 'OPTIONS',
-    HEAD = 'HEAD',
-    PATCH = 'PATCH',
-    TRACE = 'TRACE',
-    CONNECT = 'CONNECT',
-}
-
-export interface RequestOptions {
-    header?: http.OutgoingHttpHeaders;
-    headers?: http.OutgoingHttpHeaders;
-    method?: RequestMethod;
-    timeout?: number;
-    data?: any;
-}
-
-/**
- * @description
- * @author tunan
- * @export
- * @class RequestMethodError
- * @extends {Error}
- */
-export class RequestMethodError extends Error {
-    /**
-     * Creates an instance of RequestMethodError.
-     * @author tunan
-     * @memberof RequestMethodError
-     */
-    constructor(message?: string) {
-        super(message);
-
-        this.message = `RequestMethodError: ${message || this.message}`;
-    }
-}
-
-export class UnknowReuqestError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `UnknowReuqestError: ${message || this.message}`;
-    }
-}
-
-export class RequestError extends Error {
-    constructor(msg?: string | Error) {
-        super();
-        if (typeof msg === 'object') {
-            this.stack = msg.stack;
-            msg = msg.message;
-        }
-
-        this.message = `RequestError: ${msg}`;
-    }
-}
+export * from './error';
 
 /**
  * @description make a http request by nodejs native method
@@ -69,7 +15,7 @@ export class RequestError extends Error {
  */
 export default function request(uri: string, options = {
     method: RequestMethod.GET,
-} as RequestOptions) {
+} as IRequestOptions) {
     const urlObject = new url.URL(uri);
 
     if (!options.method) {
@@ -101,7 +47,7 @@ export default function request(uri: string, options = {
     };
 
     let request: http.ClientRequest;
-    let promise: Promise<http.ClientResponse & { data?: any; isJSON(): boolean; }>;
+    let promise: Promise<http.IncomingMessage & { data?: any; isJSON(): boolean; }>;
 
     switch (options.method) {
         case RequestMethod.GET:
