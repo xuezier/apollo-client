@@ -160,6 +160,10 @@ export default class Apollo extends EventEmitter {
         return this._delay;
     }
 
+    set delay(delay: number) {
+        this.delay = delay;
+    }
+
     get timeout() {
         return this._timeout;
     }
