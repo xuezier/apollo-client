@@ -249,8 +249,7 @@ export default class Apollo extends EventEmitter {
                 if (!response.isJSON()) {
                     error = new RequestError(body);
                 } else if (status === 200) {
-                    const data = JSON.parse(body);
-                    this.setEnv(data);
+                    this.setEnv(body);
                 } else {
                     error = new ApolloInitConfigError(message);
                 }

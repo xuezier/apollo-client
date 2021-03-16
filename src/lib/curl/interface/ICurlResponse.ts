@@ -1,7 +1,7 @@
 import * as http from 'http';
 
 export interface ICurlResponse {
-    body: string;
+    body: any;
     headers: http.IncomingHttpHeaders;
     version: string;
     status: number;
