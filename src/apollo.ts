@@ -455,7 +455,7 @@ export default class Apollo extends EventEmitter {
         return this.configs.getDate(key);
     }
 
-    private setEnv(data: IApolloReponseConfigData) {
+    setEnv(data: IApolloReponseConfigData) {
         let { configurations, releaseKey, namespaceName } = data;
         if (namespaceName.endsWith('.json')) {
             configurations = JSON.parse(configurations.content);
