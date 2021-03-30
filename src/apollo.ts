@@ -339,6 +339,7 @@ export default class Apollo extends EventEmitter {
         if (response.isJSON() || response.statusCode === 304) {
             if (response.data) {
                 this.setEnv(response.data);
+                this.emit('config.updated', response.data);
             }
             return response.data;
         }
