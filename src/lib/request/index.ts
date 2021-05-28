@@ -16,6 +16,9 @@ export * from './error';
 export default function request(uri: string, options = {
     method: RequestMethod.GET,
 } as IRequestOptions) {
+    if (!uri.startsWith('http'))
+        uri = `http://${uri}`;
+
     const urlObject = new url.URL(uri);
 
     if (!options.method) {
