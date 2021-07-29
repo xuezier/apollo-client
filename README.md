@@ -1,4 +1,4 @@
-# EGG-APOLLO-CLIENT
+# APOLLO-CLIENT
 [![NPM version][npm-image]][npm-url]
 
 [npm-image]: https://img.shields.io/npm/v/@gaoding/apollo-client.svg?style=flat-square
