@@ -234,33 +234,36 @@ export default class Apollo extends EventEmitter {
             urlArray.forEach(url => {
                 const options = {
                     url,
-                    method: curl_1.CurlMethods.GET,
+                    method: CurlMethods.GET,
                     body: JSON.stringify(data),
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
                 };
                 if (this.secret) {
                     const timestamp = Date.now().toString();
                     const sign = this.signature(timestamp, url);
-                    options.headers = Object.assign(Object.assign({}, options.headers), { Authorization: sign, Timestamp: timestamp });
+                    options.headers = {
+                        ...options.headers,
+                        Authorization: sign,
+                        Timestamp: timestamp
+                    };
                 }
-                const response = curl_1.default(options);
+                const response = curl.default(options);
                 responses.push(response);
             });
         } catch (err) {
             error = err;
-        }
-        finally {
+        } finally {
             if (error) {
-                error = new ApolloInitConfigError_1.ApolloInitConfigError(error);
+                error = new ApolloInitConfigError(error);
             } else if (responses && responses.length > 0) {
                 responses.forEach(response => {
                     const { body, status, message } = response;
                     if (!response.isJSON()) {
-                        error = new request_1.RequestError(body);
+                        error = new RequestError(body);
                     } else if (status === 200) {
                         this.setEnv(body);
                     } else {
-                        error = new ApolloInitConfigError_1.ApolloInitConfigError(message);
+                        error = new ApolloInitConfigError(message);
                     }
                 });
             }
