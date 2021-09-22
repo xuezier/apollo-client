@@ -210,7 +210,6 @@ export default class Apollo extends EventEmitter {
     init(config: IApolloRequestConfig = {}) {
         const { cluster_name = this.cluster_name, namespace_name = this.namespace_name } = config;
 
-        const url = `${this.config_server_url}/configs/${this.app_id}/${cluster_name}/${namespace_name}`;
         const data = {
             releaseKey: this.release_key,
             ip: this.ip,
@@ -218,49 +217,56 @@ export default class Apollo extends EventEmitter {
 
         let response: ICurlResponse | undefined;
         let error;
-        try {
-            const options = {
-                url,
-                method: CurlMethods.GET,
-                body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
-            };
-            if (this.secret) {
-                const timestamp = Date.now().toString();
-                const sign = this.signature(timestamp, url);
-
-                options.headers = {
-                    ...options.headers,
-                    Authorization: sign,
-                    Timestamp: timestamp
-                }
+        let urlArray = [];
+        const url = namespace => {
+            return `${this.config_server_url}/configs/${this.app_id}/${cluster_name}/${namespace}`;
+        }
+        if (Array.isArray(namespace_name)) {
+            if (namespace_name.length === 0) {
+                urlArray = [url('application')];
+            } else {
+                urlArray = namespace_name.map(n => url(n));
             }
-            response = curl(options);
+        } else {
+            urlArray = [url(namespace_name)];
+        }
+        try {
+            urlArray.forEach(url => {
+                const options = {
+                    url,
+                    method: curl_1.CurlMethods.GET,
+                    body: JSON.stringify(data),
+                    headers: { 'Content-Type': 'application/json' },
+                };
+                if (this.secret) {
+                    const timestamp = Date.now().toString();
+                    const sign = this.signature(timestamp, url);
+                    options.headers = Object.assign(Object.assign({}, options.headers), { Authorization: sign, Timestamp: timestamp });
+                }
+                const response = curl_1.default(options);
+                responses.push(response);
+            });
         } catch (err) {
             error = err;
-        } finally {
+        }
+        finally {
             if (error) {
-                error = new ApolloInitConfigError(error);
+                error = new ApolloInitConfigError_1.ApolloInitConfigError(error);
+            } else if (responses && responses.length > 0) {
+                responses.forEach(response => {
+                    const { body, status, message } = response;
+                    if (!response.isJSON()) {
+                        error = new request_1.RequestError(body);
+                    } else if (status === 200) {
+                        this.setEnv(body);
+                    } else {
+                        error = new ApolloInitConfigError_1.ApolloInitConfigError(message);
+                    }
+                });
             }
-
-            else if (response) {
-                const { body, status, message } = response;
-
-                if (!response.isJSON()) {
-                    error = new RequestError(body);
-                } else if (status === 200) {
-                    this.setEnv(body);
-                } else {
-                    error = new ApolloInitConfigError(message);
-                }
-            }
-
             if (error) {
                 this.logger.warn('[egg-apollo-client] %j', error);
-
-                if (this.set_env_file) {
-                    this.readFromEnvFile();
-                }
+                if (this.set_env_file) this.readFromEnvFile();
             }
         }
     }
