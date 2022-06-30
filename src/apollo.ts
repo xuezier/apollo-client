@@ -66,17 +66,20 @@ export default class Apollo extends EventEmitter {
 
         this._envReader = new EnvReader({
             env_file_type: this.env_file_type,
-            logger: this.logger
+            logger: this.logger,
         });
 
         if (config.token && config.portal_address) {
-            this._openApi = new OpenApi({
-                token: this.token,
-                portal_address: this.portal_address,
-                app_id: this.app_id,
-                cluster_name: this.cluster_name,
-                namespace_name: this.namespace_name,
-            }, this.logger);
+            this._openApi = new OpenApi(
+                {
+                    token: this.token,
+                    portal_address: this.portal_address,
+                    app_id: this.app_id,
+                    cluster_name: this.cluster_name,
+                    namespace_name: this.namespace_name,
+                },
+                this.logger,
+            );
         }
     }
 
@@ -223,7 +226,9 @@ export default class Apollo extends EventEmitter {
                 url,
                 method: CurlMethods.GET,
                 body: JSON.stringify(data),
-                headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
+                headers: {
+                    'Content-Type': 'application/json',
+                } as http.OutgoingHttpHeaders,
             };
             if (this.secret) {
                 const timestamp = Date.now().toString();
@@ -232,8 +237,8 @@ export default class Apollo extends EventEmitter {
                 options.headers = {
                     ...options.headers,
                     Authorization: sign,
-                    Timestamp: timestamp
-                }
+                    Timestamp: timestamp,
+                };
             }
             response = curl(options);
         } catch (err) {
@@ -241,9 +246,7 @@ export default class Apollo extends EventEmitter {
         } finally {
             if (error) {
                 error = new ApolloInitConfigError(error);
-            }
-
-            else if (response) {
+            } else if (response) {
                 const { body, status, message } = response;
 
                 if (!response.isJSON()) {
@@ -256,7 +259,7 @@ export default class Apollo extends EventEmitter {
             }
 
             if (error) {
-                this.logger.warn('[egg-apollo-client] %j', error);
+                this.logger.warn('[egg-apollo-client] %s', error);
 
                 if (this.set_env_file) {
                     this.readFromEnvFile();
@@ -290,7 +293,7 @@ export default class Apollo extends EventEmitter {
                 releaseKey: release_key,
                 ip,
             },
-            headers: {}
+            headers: {},
         };
 
         if (this.secret) {
@@ -300,7 +303,7 @@ export default class Apollo extends EventEmitter {
             options.headers = {
                 Authorization: sign,
                 Timestamp: timestamp,
-            }
+            };
         }
 
         const response = await request(url, options);
@@ -332,7 +335,7 @@ export default class Apollo extends EventEmitter {
             options.headers = {
                 Authorization: sign,
                 Timestamp: timestamp,
-            }
+            };
         }
 
         const response = await request(url, options);
@@ -342,8 +345,7 @@ export default class Apollo extends EventEmitter {
                 this.emit('config.updated', response.data);
             }
             return response.data;
-        }
-        else {
+        } else {
             const error = new RequestError(response.data);
             this.logger.error('[egg-apollo-client] %j', error);
         }
@@ -376,7 +378,7 @@ export default class Apollo extends EventEmitter {
 
                 if (retryTimes < 10) {
                     retryTimes++;
-                    await new Promise(resolve => setTimeout(resolve, this.delay));
+                    await new Promise((resolve) => setTimeout(resolve, this.delay));
                     // 每次重试都要加长延时时间
                     this._setDelay();
                 } else {
@@ -417,7 +419,7 @@ export default class Apollo extends EventEmitter {
             options.headers = {
                 Authorization: sign,
                 Timestamp: timestamp,
-            }
+            };
         }
 
         const response = await request(url, options);
@@ -500,8 +502,7 @@ export default class Apollo extends EventEmitter {
             const rename = `${envPath}.${Date.now()}`;
             try {
                 fs.renameSync(envPath, rename);
-            }
-            catch (e) {
+            } catch (e) {
                 process.env.NODE_ENV !== 'production' && console.error(e);
             }
         }

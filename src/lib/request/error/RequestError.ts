@@ -8,4 +8,7 @@ export class RequestError extends Error {
 
         this.message = `RequestError: ${msg}`;
     }
+    toString() {
+        return this.message;
+    }
 }
