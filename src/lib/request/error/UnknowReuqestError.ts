@@ -1,6 +1,9 @@
 export class UnknowReuqestError extends Error {
-    constructor(message?: string) {
-        super(message);
-        this.message = `UnknowReuqestError: ${message || this.message}`;
-    }
+  constructor(message?: string) {
+    super(message);
+    this.message = `UnknowReuqestError: ${message || this.message}`;
+  }
+  toString() {
+    return this.message;
+  }
 }

@@ -3,4 +3,7 @@ export class ApolloInitConfigError extends Error {
         super(message);
         this.message = `ApolloInitConfigError: ${message}`;
     }
+    toString() {
+        return this.message;
+    }
 }
