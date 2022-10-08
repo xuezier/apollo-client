@@ -180,11 +180,33 @@ export default class Apollo extends EventEmitter {
     emit(event: ApolloEvent, ...args: any[]) {
         return super.emit(event, ...args);
     }
+    /**
+     * 解析url
+     * @param fullUrl 拼接但未处理的完整路径 http[s]://xxxx.xx:12222/configs/xxx/application?xxx=123
+     * @quote https://github.com/apolloconfig/apollo/blob/aa184a2e11d6e7e3f519d860d69f3cf30ccfcf9c/apollo-core/src/main/java/com/ctrip/framework/apollo/core/signature/Signature.java#L40 
+     */
+    private url2PathWithQuery(fullUrl: string) {
+        const url = new URL(fullUrl);
+        const pathWithQuery = url.pathname + url.search;
+        return pathWithQuery;
+    }
 
+    private getAuthorization(timestamp: string, fullUrl: string) {
+        const app_id = this.app_id;
+        const pathWithQuery = this.url2PathWithQuery(fullUrl);
+        const sign = this.signature(timestamp, pathWithQuery);
+        return `Apollo ${app_id}:${sign}`;
+    }
+
+    /**
+     * 
+     * @param timestamp 毫秒时间戳
+     * @param pathWithQuery pathname + query { /xxx/afd/123?xxx=12313 }
+     * @quote https://github.com/apolloconfig/apollo/blob/aa184a2e11d6e7e3f519d860d69f3cf30ccfcf9c/apollo-core/src/main/java/com/ctrip/framework/apollo/core/signature/Signature.java#L22
+     */
     private signature(timestamp: string, pathWithQuery: string) {
         const stringToSign = `${timestamp}\n${pathWithQuery}`;
-
-        const sign = crypto.createHmac('sha1', this.secret).update(stringToSign).digest('hex');
+        const sign = crypto.createHmac('sha1', this.secret).update(stringToSign).digest('base64');
         return sign;
     }
 
@@ -225,16 +247,17 @@ export default class Apollo extends EventEmitter {
                 body: JSON.stringify(data),
                 headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
             };
+            
             if (this.secret) {
                 const timestamp = Date.now().toString();
-                const sign = this.signature(timestamp, url);
-
+                const authorization = this.getAuthorization(timestamp, url);
                 options.headers = {
                     ...options.headers,
-                    Authorization: sign,
+                    Authorization: authorization,
                     Timestamp: timestamp
                 }
             }
+            
             response = curl(options);
         } catch (err) {
             error = err;
@@ -295,10 +318,10 @@ export default class Apollo extends EventEmitter {
 
         if (this.secret) {
             const timestamp = Date.now().toString();
-            const sign = this.signature(timestamp, url);
+            const authorization = this.getAuthorization(timestamp, url);
 
             options.headers = {
-                Authorization: sign,
+                Authorization: authorization,
                 Timestamp: timestamp,
             }
         }
@@ -327,10 +350,10 @@ export default class Apollo extends EventEmitter {
 
         if (this.secret) {
             const timestamp = Date.now().toString();
-            const sign = this.signature(timestamp, url);
+            const authorization = this.getAuthorization(timestamp, url);
 
             options.headers = {
-                Authorization: sign,
+                Authorization: authorization,
                 Timestamp: timestamp,
             }
         }
@@ -412,10 +435,10 @@ export default class Apollo extends EventEmitter {
 
         if (this.secret) {
             const timestamp = Date.now().toString();
-            const sign = this.signature(timestamp, url);
+            const authorization = this.getAuthorization(timestamp, url);
 
             options.headers = {
-                Authorization: sign,
+                Authorization: authorization,
                 Timestamp: timestamp,
             }
         }
@@ -547,7 +570,7 @@ export default class Apollo extends EventEmitter {
 
                     envPath = path.resolve(envPath, '.env.apollo');
                 } catch (e) {
-                    const errcode = e.code;
+                    const errcode = (e as { code: string }).code;
                     if (errcode !== 'ENOTDIR') {
                         envPath = path.resolve(baseDir, '.env.apollo');
                     }
