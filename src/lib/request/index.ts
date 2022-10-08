@@ -37,13 +37,16 @@ export default function request(uri: string, options = {
             urlObject.search = data;
         }
     }
-
+    
     const requestOptions: http.RequestOptions = {
         protocol: urlObject.protocol,
         host: urlObject.host,
         hostname: urlObject.hostname,
         path: urlObject.pathname + urlObject.search,
-
+        // bug fix https://nodejs.org/api/http.html#httprequestoptions-callback
+        // hostname <string> Alias for host. To support url.parse(), hostname will be used if both host and hostname are specified.
+        // this hostname no port.
+        port: urlObject.port || (urlObject.protocol === 'http:' ? 80 : 443),
         method: options.method,
         headers: options.headers || options.header,
         timeout: options.timeout || 50000,
@@ -103,13 +106,11 @@ export default function request(uri: string, options = {
 
 function doRequest(opts: http.RequestOptions, resolve: (v: any) => void, reject: (s: any) => void): http.ClientRequest {
     const protocol = opts.protocol;
-
     const request = (protocol === 'http:' ? http : https).request(opts, (response: http.IncomingMessage & {
         data?: any;
         isJSON?: () => boolean;
     }) => {
         let data = Buffer.from('');
-
         response.isJSON = function isJSON() {
             const type = response.headers['content-type'] as string || '';
 
@@ -132,13 +133,11 @@ function doRequest(opts: http.RequestOptions, resolve: (v: any) => void, reject:
                     response.data = data.toString();
                 }
             }
-
             resolve(response);
         });
 
         response.on('error', error => {
             response.destroy();
-
             reject(error);
         });
     });
