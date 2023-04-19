@@ -1,6 +1,7 @@
-const Configs: Map<NamespaceConfigs, {[x: string]: string}> = new Map();
+const Configs: WeakMap<NamespaceConfigs, {[x: string]: string}> = new WeakMap();
 
 export default class NamespaceConfigs {
+
     constructor(configs: {[x: string]: string}) {
         Configs.set(this, configs);
         for(const key in configs) {
