@@ -183,7 +183,7 @@ export default class Apollo extends EventEmitter {
     /**
      * 解析url
      * @param fullUrl 拼接但未处理的完整路径 http[s]://xxxx.xx:12222/configs/xxx/application?xxx=123
-     * @quote https://github.com/apolloconfig/apollo/blob/aa184a2e11d6e7e3f519d860d69f3cf30ccfcf9c/apollo-core/src/main/java/com/ctrip/framework/apollo/core/signature/Signature.java#L40 
+     * @quote https://github.com/apolloconfig/apollo/blob/aa184a2e11d6e7e3f519d860d69f3cf30ccfcf9c/apollo-core/src/main/java/com/ctrip/framework/apollo/core/signature/Signature.java#L40
      */
     private url2PathWithQuery(fullUrl: string) {
         const url = new URL(fullUrl);
@@ -199,7 +199,7 @@ export default class Apollo extends EventEmitter {
     }
 
     /**
-     * 
+     *
      * @param timestamp 毫秒时间戳
      * @param pathWithQuery pathname + query { /xxx/afd/123?xxx=12313 }
      * @quote https://github.com/apolloconfig/apollo/blob/aa184a2e11d6e7e3f519d860d69f3cf30ccfcf9c/apollo-core/src/main/java/com/ctrip/framework/apollo/core/signature/Signature.java#L22
@@ -247,7 +247,7 @@ export default class Apollo extends EventEmitter {
                 body: JSON.stringify(data),
                 headers: { 'Content-Type': 'application/json' } as http.OutgoingHttpHeaders,
             };
-            
+
             if (this.secret) {
                 const timestamp = Date.now().toString();
                 const authorization = this.getAuthorization(timestamp, url);
@@ -257,7 +257,7 @@ export default class Apollo extends EventEmitter {
                     Timestamp: timestamp
                 }
             }
-            
+
             response = curl(options);
         } catch (err) {
             error = err;
@@ -382,7 +382,7 @@ export default class Apollo extends EventEmitter {
                     for (const item of data) {
                         const { notificationId, namespaceName } = item;
                         if (this.notifications[namespaceName] !== notificationId) {
-                            await this.remoteConfigServiceSkipCache(config);
+                            await this.remoteConfigServiceSkipCache({ ...config, namespace_name: namespaceName });
                             this.notifications[namespaceName] = notificationId;
                         }
                     }
