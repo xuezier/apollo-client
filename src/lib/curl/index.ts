@@ -18,19 +18,19 @@ export default function request(options: ICurlOptions): ICurlResponse {
     }
 
     const url = options.url;
-    
+
     const result = spawnSync('node', ['./child.js', url, '-o', JSON.stringify(options)], {
         cwd: __dirname
     });
     const { stdout } = result;
     const resultString = stdout.toString();
-    
+
     const response = resultString ? JSON.parse(resultString) : {};
 
     return {
         ...response,
          isJSON() {
-            return (this.headers['content-type'] as string || '').startsWith('application/json');
+            return (this.headers ? this.headers['content-type'] as string : '' || '').startsWith('application/json');
         },
     } as ICurlResponse;
 }
