@@ -178,11 +178,11 @@ export class OpenApi {
     /**
      * @description 创建Namespace
      */
-    async createNamespace(params: {
+    async  (params: {
         appId?: string;
         name: string;
         format: 'properties' | 'xml' | 'json' | 'yml' | 'yaml';
-        isPublic: string;
+        isPublic: boolean;
         comment?: string;
         dataChangeCreatedBy: string;
     }): Promise<NamespaceCreateResponse> {
