@@ -178,7 +178,7 @@ export class OpenApi {
     /**
      * @description 创建Namespace
      */
-    async  (params: {
+    async  createNamespace(params: {
         appId?: string;
         name: string;
         format: 'properties' | 'xml' | 'json' | 'yml' | 'yaml';
