@@ -223,7 +223,7 @@ export class OpenApi {
         params = this._mergeParams(params);
         const { env, appId, clusterName, namespaceName, key } = params;
 
-        return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${key}`);
+        return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${encodeURIComponent(key)}`);
     }
 
     /**
@@ -272,7 +272,7 @@ export class OpenApi {
         const { createIfNotExists, env, appId, clusterName, namespaceName, comment, key, value, dataChangeLastModifiedBy, dataChangeCreatedBy } = params;
 
         const data = { key, value, comment, dataChangeLastModifiedBy, dataChangeCreatedBy };
-        let url = `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${key}`;
+        let url = `/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${encodeURIComponent(key)}`;
 
         if (createIfNotExists) {
             url += `?createIfNotExists=true`;
@@ -298,7 +298,7 @@ export class OpenApi {
         params = this._mergeParams(params);
         const { env, appId, clusterName, namespaceName, key, operator } = params;
 
-        return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${key}?operator=${operator}&key=${key}`, {
+        return this.request(`/envs/${env}/apps/${appId}/clusters/${clusterName}/namespaces/${namespaceName}/items/${encodeURIComponent(key)}?operator=${operator}&key=${encodeURIComponent(key)}`, {
             method: 'DELETE',
         });
     }
