@@ -373,9 +373,13 @@ export default class Apollo extends EventEmitter {
     }
 
     async startNotification(config: IApolloRequestConfig = {}) {
+        this._watch = true;
         let retryTimes = 0;
 
         while (true) {
+            if(!this.watch)
+                break;
+
             try {
                 const data: IApolloLongPollingResponseData[] | undefined = await this.remoteConfigFromServiceLongPolling(config);
                 if (data) {
@@ -408,6 +412,10 @@ export default class Apollo extends EventEmitter {
                 }
             }
         }
+    }
+
+    stopNotification() {
+        this._watch = false;
     }
 
     async remoteConfigFromServiceLongPolling(config: IApolloRequestConfig = {}) {
