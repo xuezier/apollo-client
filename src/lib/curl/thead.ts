@@ -4,7 +4,7 @@ import * as https from 'https';
 
 
 const uint8Array = new Uint8Array(workerData.sharedArrayBuffer);
-const int32Array = new Int32Array(workerData.sharedArrayBuffer);
+const int32Array = new Int32Array(workerData.sharedBufferSync);
 const { url, options } = workerData;
 
 const request = url.startsWith('https') ?
