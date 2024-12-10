@@ -34,6 +34,9 @@ const req = request(url, options, (res) => {
 
 req.on('error', (e) => {
     console.error(`Problem with request: ${e.message}`);
+    // 通知主线程数据已准备好
+    Atomics.store(int32Array, 0, 1);  // 修改同步标志
+    Atomics.notify(int32Array, 0, 1);  // 通知主线程
 });
 
 req.end();

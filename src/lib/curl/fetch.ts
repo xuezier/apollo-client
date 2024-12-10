@@ -24,5 +24,13 @@ function fetchDataSync(url: string, options: any): any {
 
     // 数据准备好后，读取数据（转换为字符串）
     const responseData = new TextDecoder().decode(uint8Array); // 从共享内存读取并解码为字符串
-    return responseData;
+
+    if(responseData) {
+        return {
+            body: responseData,
+            version: 'HTTP/1.1',
+            status: 200,
+            message: 'ok',
+        }
+    }
 }
