@@ -32,10 +32,6 @@ const req = request(url, options, (res) => {
         // 将数据存储在共享内存中
         uint8Array.set(dataBytes, 4);  // 从第4字节开始存储数据（前4字节用来存储长度）
 
-
-        // 将字节数组写入共享内存
-        uint8Array.set(dataBytes, 0);
-
         // 通知主线程数据已准备好
         Atomics.store(syncInt32Array, 0, 1);  // 修改同步标志
         Atomics.notify(syncInt32Array, 0, 1);  // 通知主线程
