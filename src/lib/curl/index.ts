@@ -19,7 +19,8 @@ export default function request(options: ICurlOptions): ICurlResponse {
 
     const url = options.url;
 
-    const result = spawnSync('node', ['./child.js', url, '-o', JSON.stringify(options)], {
+    const cmd = process.execPath;
+    const result = spawnSync(cmd, ['./child.js', url, '-o', JSON.stringify(options)], {
         cwd: __dirname
     });
     const { stdout } = result;
