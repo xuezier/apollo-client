@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 import { CurlMethods } from './enum/CurlMethods';
 import { ICurlOptions, ICurlResponse } from './interface';
-import curl from '../request';
+import { fetch } from './thead';
 
 export * from './enum/CurlMethods';
 export * from './interface';
@@ -39,27 +39,14 @@ export default function request(options: ICurlOptions): ICurlResponse {
         } as ICurlResponse;
     }
     else {
-        let response: any = {
+        const response = fetch(url, options);
+
+        return {
+            ...response,
             isJSON() {
                 return (this.headers ? this.headers['content-type'] as string : '' || '').startsWith('application/json');
             },
-        };
-        curl(url, options).then(result => {
-            Object.assign(response, {
-                body: result.data,
-                headers: result.headers,
-                version: `HTTP/${result.httpVersion}`,
-                status: result.statusCode,
-                message: result.statusMessage,
-            })
-        });
+        } as ICurlResponse;
 
-        let now = Date.now();
-        while(true) {
-            if((Date.now() - now) > 500)
-                break;
-        }
-
-        return response;
     }
 }
