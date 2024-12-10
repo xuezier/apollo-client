@@ -1,7 +1,7 @@
 import { spawnSync } from 'child_process';
 import { CurlMethods } from './enum/CurlMethods';
 import { ICurlOptions, ICurlResponse } from './interface';
-import { fetch } from './thead';
+import { fetch } from './fetch';
 
 export * from './enum/CurlMethods';
 export * from './interface';
