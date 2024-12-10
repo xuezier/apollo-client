@@ -29,7 +29,7 @@ function fetchDataSync(url: string, options: any): any {
 
     if(responseData) {
         return {
-            body: responseData,
+            body: JSON.parse(responseData),
             version: 'HTTP/1.1',
             headers: {
                 'content-type': 'application/json',
